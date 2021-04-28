@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Facturación</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
+        <link rel="stylesheet" href="/jquery-ui/jquery-ui.theme.min.css">
+
+        <script src="/jquery-ui/external/jquery/jquery.js"></script>
+        <script src="/jquery-ui/jquery-ui.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.1/jquery.validate.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script type="text/javascript">
+            var Nproducto
+            var Nprecio
+            var id = 0
+            class Cliente {
+                constructor(nit, nombre){
+                    this.nit = nit;
+                    this.nombre = nombre;
+                }
+            }
+
+            class Producto extends Cliente {
+                constructor(nit, nombre, nomProducto, cantidad, precioUnitario, subTotal){
+                    super(nit, nombre);
+                    this.nomProducto = nomProducto;
+                    this.cantidad = cantidad;
+                    this.precioUnitario = precioUnitario;
+                    this.subTotal = subTotal;
+                }
+            }
+
+            class ClienteController {
+                constructor() {}
+
+                mostrar(i) {
+                    console.log('Inicia metodo mostrar')
+                    let tablaProductos = $('#tablaProductos')
+                    tablaProductos.html('')
+
+                    $.ajax({
+                        url: 'http://localhost:3000/facturas/' + i,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(resultado) {
+                            let productos = resultado
+                            console.log('Metodo GET correcto')
+                            for (let i in productos) {
+                                let producto = productos[i]
+                                let tr = $('<tr>')
+                                
+                                let tdProducto = $('<td>')
+                                tdProducto.html(producto.nomProducto)
+
+                                let tdCantidad = $('<td>')
+                                tdCantidad.html(producto.cantidad)
+                                
+                                let tdPrecioUnitario = $('<td>')
+                                tdPrecioUnitario.html(producto.precioUnitario)
+
+                                let tdSubtotal = $('<td>')
+                                tdSubtotal.html(producto.subTotal)
+
+                                tr.append(tdProducto)
+                                tr.append(tdCantidad)
+                                tr.append(tdPrecioUnitario)
+                                tr.append(tdSubtotal)
+
+                                tablaProductos.append(tr)
+                            }
+                        }
+                    })
+                }
+
+                agregar() {
+                    let nit = 123
+                    let nombre = 'juan'
+                    let nomProducto = Nproducto
+                    let cantidad = parseInt($('#txtCantidad').val());
+                    let precioUnitario = parseFloat(Nprecio)
+                    let subTotal = Nprecio * cantidad 
+
+                    let factura = new Producto(nit, nombre, nomProducto, cantidad, precioUnitario, subTotal)
+
+                    $.ajax({
+                        url: 'http://localhost:3000/facturas',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(factura),
+                        success: function(resultado) {
+                            console.log('Respuesta del servidor ' + resultado)
+                            clienteController.mostrar()
+                        }
+                    })
+
+                    console.log('El metodo agregar a terminado')
+                }
+            }
+
+            $(document).ready(function() {
+                clienteController = new ClienteController()
+
+                $('#dlgProductos').dialog({title: 'Listado de productos', width: 500, autoOpen: false, modal: true})
+                $('#btnAgregarProducto').on('click', function() {
+                    $('#dlgProductos').dialog('open')
+
+                    let tbProductos = $('#tbProductos')
+                    tbProductos.html('')
+                    $.ajax({
+                        url: 'http://localhost:3000/productos',
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(resultado) {
+                            let productos = resultado
+                            for (let i in productos) {
+                                let producto = productos[i]
+                                let tr = $('<tr>')
+                                
+                                let tdProducto = $('<td>')
+                                tdProducto.html(producto.nombre)
+
+                                let tdPrecio = $('<td>')
+                                tdPrecio.html(producto.precioUnitario)
+
+                                tr.append(tdProducto)
+                                tr.append(tdPrecio)
+
+                                tbProductos.append(tr)
+
+                                $("#tbProductos tr").click(function(){
+                                    $(this).addClass('selected').siblings().removeClass('selected');    
+                                    Nproducto = $(this).find('td:eq(0)').html();
+                                    Nprecio = $(this).find('td:eq(1)').html();
+                                    console.log(Nproducto)  
+                                });  
+                            }
+                        }
+                    })                   
+                    console.log('OK 1')
+
+                })              
+            })
+        </script>
+    </head>
+    <body>
+        <h1>SISTEMA DE FACTURACION</h1>
+        <div class="container">
+            <form class="container" action="#">
+                <div>
+                    <label for="txtCliente" class="form-label">Cliente:</label>
+                    <input type="text" name="cliente" class="form-control" id="txtCliente" />
+                    <input type="button" id="btnBuscar" class="btn btn-light" value="Buscar" />
+                </div>
+                <div>
+                    <label for="txtGlosa" class="form-label">Glosa:</label>
+                    <input type="text" name="glosa" class="form-control" id="txtGlosa" />
+                </div>
+                <div>
+                    <input type="button" id="btnAgregarProducto" class="btn btn-light" value="Agregar producto" />
+                </div>
+            </form>
+        </div>
+
+        <div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>
+                            Producto
+                        </th>
+                        <th>
+                            Cantidad
+                        </th>
+                        <th>
+                            Precio Unitario (Bs)
+                        </th>
+                        <th>
+                            Subtotal (Bs)
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="tablaProductos">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="dlgProductos">
+            <table id="tbProductos" class="table table-hover"></table>
+            <div>
+                <label for="txtCantidad" class="form-label">Cantidad:</label>
+                <input type="text" name="cantidad" class="form-control" id="txtCantidad" />
+            </div>
+            <div>
+                <input type="button" id="btnAgregar" class="btn btn-light" value="Agregar" onclick="clienteController.agregar()" />
+            </div>
+        </div>
+    </body>
+</html>
